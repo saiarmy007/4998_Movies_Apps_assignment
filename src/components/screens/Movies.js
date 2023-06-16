@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MovieCard from '../listItems/CardDetails';
+import { StyleSheet, Text, View, Image, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 const MOVIE_FILTER = {
@@ -12,8 +11,8 @@ const MOVIE_FILTER = {
 }
 
 const MovieScreen = ({ navigation }) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [movieData, setMovieData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState(MOVIE_FILTER.nowPlaying);
 
   const options = {
@@ -23,9 +22,7 @@ const MovieScreen = ({ navigation }) => {
       Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkNzhkNTZmYjIyOGMzMTA5NGU1MzgzN2I4ZWRlOGM4OSIsInN1YiI6IjY0ODMzNDY5ZDJiMjA5MDBhZDNiYTAwNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.ZX9t_i4x1PVeacqMJSeK1afAQ_QgEbO2LhGgd083geo'
     }
   };
-
   const imagePath = "https://image.tmdb.org/t/p/original/";
-
   useEffect(() => {
     fetchMovies();
   }, [filter])
@@ -36,52 +33,81 @@ const MovieScreen = ({ navigation }) => {
     fetch('https://api.themoviedb.org/3/movie/' + filter, options)
       .then(response => response.json())
       .then(response => {
-        let data = response.results.map(item => ({ id: item.id, title: item.title, releasedate: item.release_date, popularity: item.popularity, image: imagePath + item.poster_path }));
+        let data = response.results.map(item => ({
+          id: item.id,
+          title: item.title,
+          releasedate: item.release_date,
+          popularity: item.popularity,
+          image: imagePath + item.poster_path
+        }));
         setMovieData(data);
-      })
-      .catch(err => console.error(err))
-      .finally(() => setIsLoading(false));
+      }).catch(err => console.error(err));
+
+    setIsLoading(false);
   }
 
+  const renderMovieItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.movieItemContainer}
+      onPress={() => navigation.navigate('Details', { title: item.title, image: item.image })}
+    >
+      <Image style={styles.movieImage} source={{ uri: item.image }} />
+      <Text style={styles.movieTitle}>{item.title}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={styles.container}>
+    <View>
       <Picker
         selectedValue={filter}
         mode='dialog'
-        onValueChange={(itemValue, itemIndex) =>
-          setFilter(itemValue)
-        }>
-        <Picker.Item label="Now Playing" value={MOVIE_FILTER.nowPlaying} />
-        <Picker.Item label="Popular" value={MOVIE_FILTER.popular} />
-        <Picker.Item label="Top Rated" value={MOVIE_FILTER.topRated} />
-        <Picker.Item label="Upcoming" value={MOVIE_FILTER.upcoming} />
+        onValueChange={(itemValue, itemIndex) => setFilter(itemValue)}
+        style={styles.picker}
+      >
+        <Picker.Item label="Movies Now Playing" value={MOVIE_FILTER.nowPlaying} />
+        <Picker.Item label="Most Popular Movies" value={MOVIE_FILTER.popular} />
+        <Picker.Item label="Top Rated Movies" value={MOVIE_FILTER.topRated} />
+        <Picker.Item label="Upcoming Movies" value={MOVIE_FILTER.upcoming} />
       </Picker>
-      <View style={styles.movieGrid}>
-        {!isLoading && movieData.map(movie => (
-          <MovieCard
-            key={movie.id}
-            image={movie.image}
-            label={movie.title}
-            navigation={navigation}
-          />
-        ))}
-      </View>
+      {!isLoading && (
+        <FlatList
+          data={movieData}
+          renderItem={renderMovieItem}
+          keyExtractor={item => item.id.toString()}
+          numColumns={1}
+          contentContainerStyle={styles.movieListContainer}
+        />
+      )}
       <StatusBar style="auto" />
     </View>
   );
 }
 
+export default MovieScreen;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+
+  picker: {
+    backgroundColor: 'lightgrey',
+    marginBottom: 10,
   },
-  movieGrid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+
+  movieItemContainer: {
+  
+    alignItems: 'center',
+  
+  },
+  movieImage: {
+    width: 150,
+    height: 200,
+    resizeMode: 'cover',
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  movieTitle: {
+    color: 'black',
+    fontSize: 10,
+    textAlign: 'center',
   },
 });
 
-export default MovieScreen;

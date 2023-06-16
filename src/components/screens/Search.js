@@ -1,18 +1,18 @@
-import { StyleSheet, TextInput, View, Button, FlatList } from 'react-native'
-import React from 'react'
-import MovieCard from '../listItems/CardDetails';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, TextInput, View, Button, ScrollView, Image } from 'react-native';
+import MovieList from '../lists/ListofMovies';
 import { Picker } from '@react-native-picker/picker';
 
 const SEARCH_FILTER = {
   movie: "movie",
   multi: "multi"
-}
+};
 
 const SearchScreen = ({ navigation }) => {
-  const [searchText, setSearchText] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [movieData, setMovieData] = React.useState([]);
-  const [filter, setFilter] = React.useState(SEARCH_FILTER.movie);
+  const [searchText, setSearchText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [movieData, setMovieData] = useState([]);
+  const [filter, setFilter] = useState(SEARCH_FILTER.movie);
 
   const options = {
     method: 'GET',
@@ -24,24 +24,31 @@ const SearchScreen = ({ navigation }) => {
 
   const imagePath = "https://image.tmdb.org/t/p/original/";
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchMovies();
-  }, [filter])
+  }, [filter]);
 
   const fetchMovies = () => {
     setIsLoading(true);
 
     const queryURL = 'https://api.themoviedb.org/3/search/' + filter + "?" + "query=" + encodeURIComponent(searchText);
-    console.log(queryURL)
+    console.log(queryURL);
     fetch(queryURL, options)
       .then(response => response.json())
       .then(response => {
-        let data = response.results.map(item => ({ id: item.id, title: item.title, releasedate: item.release_date, popularity: item.popularity, image: imagePath + item.poster_path }));
+        let data = response.results.map(item => ({
+          id: item.id,
+          title: item.title,
+          releasedate: item.release_date,
+          popularity: item.popularity,
+          image: imagePath + item.poster_path
+        }));
         setMovieData(data);
       })
-      .catch(err => console.error(err))
-      .finally(() => setIsLoading(false));
-  }
+      .catch(err => console.error(err));
+
+    setIsLoading(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -49,47 +56,41 @@ const SearchScreen = ({ navigation }) => {
         style={styles.input}
         onChangeText={setSearchText}
         value={searchText}
-        placeholder='i.e James Bond'
+        placeholder='search for any movie name...'
       />
       <Button
         onPress={fetchMovies}
         title='Search'
+        color='#841584'
       />
       <Picker
         selectedValue={filter}
         mode='dialog'
-        onValueChange={(itemValue, itemIndex) =>
-          setFilter(itemValue)
-        }>
+        onValueChange={(itemValue, itemIndex) => setFilter(itemValue)}
+        style={styles.picker}
+      >
         <Picker.Item label="Movies" value={SEARCH_FILTER.movie} />
         <Picker.Item label="Multi" value={SEARCH_FILTER.multi} />
       </Picker>
-      <FlatList
-        data={movieData}
-        keyExtractor={item => item.id.toString()}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <MovieCard
-            image={item.image}
-            label={item.title}
-            navigation={navigation}
-          />
-        )}
-      />
+      {!isLoading && (
+        <ScrollView>
+          <MovieList movies={movieData} navigation={navigation} />
+        </ScrollView>
+      )}
     </View>
-  )
+  );
 }
 
+export default SearchScreen;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+
   input: {
     height: 40,
-    margin: 12,
+    marginVertical: 10,
     borderWidth: 1,
     padding: 10,
   },
+
 });
 
-export default SearchScreen;
